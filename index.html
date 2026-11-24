@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080d18">
+<title>HAIDAR AI TRADING PRO</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.2/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{--bg:#080d18;--panel:#101a2b;--panel2:#0d1625;--line:#22334b;--txt:#e8f0fb;--muted:#91a4bd;--cyan:#37d6e8;--green:#2dd4a0;--red:#ff667d;--gold:#e8b95f}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#142b46 0,transparent 35%),var(--bg);color:var(--txt);font-family:Tahoma,Arial,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 4%;border-bottom:1px solid var(--line);background:#09111eea;position:sticky;top:0;z-index:5;backdrop-filter:blur(14px)}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#36d9e8,#3c7df0);display:grid;place-items:center;color:#06101c;font-weight:900;font-size:20px;box-shadow:0 0 25px #37d6e855}.brand b{letter-spacing:1.5px;font-size:15px}.brand small{display:block;color:var(--muted);font-size:10px;margin-top:4px;letter-spacing:1px}
+.header-right{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}.pulse{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green)}
+main{max-width:1450px;margin:auto;padding:28px 4% 55px}.hero{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:24px}.eyebrow{color:var(--cyan);font-size:11px;letter-spacing:2px}.hero h1{font-size:clamp(25px,4vw,39px);margin:10px 0 8px}.hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.8}.pill{border:1px solid #245268;color:var(--cyan);border-radius:30px;padding:9px 13px;font-size:11px;white-space:nowrap}
+.controls{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:12px;background:linear-gradient(140deg,#111e31,#0c1523);border:1px solid var(--line);padding:17px;border-radius:18px;margin-bottom:16px;box-shadow:0 14px 40px #0003}
+.field label{display:block;color:var(--muted);font-size:11px;margin:0 0 8px}.field select,.field input{width:100%;background:#0a1321;border:1px solid #2a3d56;color:var(--txt);padding:12px;border-radius:10px;outline:none;font-size:13px}
+button{border:0;border-radius:11px;padding:0 22px;background:linear-gradient(120deg,#38d7e5,#3986f5);color:#06111e;font-weight:900;font-size:13px;cursor:pointer;min-height:44px;box-shadow:0 7px 22px #2389d944}button:disabled{opacity:.6;cursor:wait}
+.status{padding:12px 15px;border:1px solid var(--line);border-radius:12px;background:#0d1726;color:var(--muted);font-size:12px;margin-bottom:16px;line-height:1.7}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(290px,.9fr);gap:16px}.panel{background:linear-gradient(145deg,#111d30,#0c1523);border:1px solid var(--line);border-radius:17px;padding:17px;min-width:0}.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.panel-head b{font-size:13px}.sub{color:var(--muted);font-size:10px}
+.price-line{display:flex;align-items:baseline;gap:12px;margin:5px 0 12px}.price{font-size:26px;font-weight:800;letter-spacing:.5px}.change{font-size:12px;color:var(--muted)}
+#chart{height:340px;width:100%}.signal{display:flex;justify-content:space-between;align-items:center;padding:15px;background:#0a1422;border:1px solid var(--line);border-radius:13px;margin-bottom:12px}.signal strong{font-size:23px}.buy{color:var(--green)}.sell{color:var(--red)}.wait{color:var(--gold)}
+.score{font-size:28px;font-weight:900;color:var(--cyan)}.meter{height:7px;background:#26364b;border-radius:20px;overflow:hidden;margin:9px 0 15px}.meter i{display:block;height:100%;background:linear-gradient(90deg,#35d5e5,#38a2ef);width:0}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#0a1422;border:1px solid #1d3048;border-radius:11px;padding:11px}.metric small{display:block;color:var(--muted);font-size:10px;margin-bottom:7px}.metric b{font-size:14px;direction:ltr;display:block;text-align:right}
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.level{background:#0a1422;border:1px solid #1d3048;padding:10px;border-radius:10px}.level small{display:block;color:var(--muted);font-size:10px;margin-bottom:6px}.level b{font-size:12px;direction:ltr;display:block;overflow-wrap:anywhere}
+.indicators{margin-top:16px}.indicator{display:flex;justify-content:space-between;border-bottom:1px solid #1c2b40;padding:10px 2px;font-size:11px}.indicator span:last-child{color:var(--muted)}
+.note{font-size:10px;color:var(--muted);line-height:1.8;margin-top:15px}.settings{margin-top:16px}.settings summary{cursor:pointer;color:var(--cyan);font-size:12px}.settings input{margin-top:12px}
+footer{text-align:center;color:#71849e;font-size:10px;margin-top:25px;line-height:1.8}
+@media(max-width:850px){.controls{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.hero{align-items:start;flex-direction:column}.levels{grid-template-columns:repeat(2,1fr)}header{padding:13px 4%}main{padding-top:22px}}
+@media(max-width:430px){.controls{grid-template-columns:1fr}.controls button{width:100%}.header-right{font-size:0}.price{font-size:22px}}
+</style></head>
+<body>
+<header><div class="brand"><div class="logo">H</div><div><b>HAIDAR AI TRADING PRO</b><small>MARKET INTELLIGENCE ENGINE</small></div></div><div class="header-right"><i class="pulse"></i> LIVE DATA INTERFACE</div></header>
+<main>
+<section class="hero"><div><div class="eyebrow">✦ NEXT-GENERATION TRADING DESK</div><h1>اقرأ السوق. خطّط لصفقتك.</h1><p>محرك تحليل فني متعدد المؤشرات، مع مستويات تداول محسوبة من بيانات السوق المتاحة.</p></div><div class="pill">● إشارات تحليلية — دون تنفيذ تلقائي</div></section>
+<section class="controls">
+<div class="field"><label>السوق</label><select id="market"><option value="BTCUSDT">Bitcoin · BTC/USDT</option><option value="ETHUSDT">Ethereum · ETH/USDT</option><option value="BNBUSDT">BNB · BNB/USDT</option><option value="SOLUSDT">Solana · SOL/USDT</option><option value="XAU/USD">الذهب · XAU/USD</option><option value="EUR/USD">اليورو / الدولار · EUR/USD</option><option value="GBP/USD">الإسترليني / الدولار · GBP/USD</option><option value="USD/JPY">الدولار / الين · USD/JPY</option><option value="AAPL">Apple · AAPL</option><option value="MSFT">Microsoft · MSFT</option><option value="NVDA">NVIDIA · NVDA</option><option value="TSLA">Tesla · TSLA</option><option value="WTI">النفط الخام · WTI</option><option value="XAG/USD">الفضة · XAG/USD</option><option value="SPX">S&amp;P 500 · SPX</option><option value="NDX">Nasdaq 100 · NDX</option></select></div>
+<div class="field"><label>الإطار الزمني</label><select id="tf"><option value="1m">1 دقيقة</option><option value="5m">5 دقائق</option><option value="15m">15 دقيقة</option><option value="30m">30 دقيقة</option><option value="1h" selected>ساعة H1</option><option value="4h">4 ساعات H4</option><option value="1d">يومي D1</option><option value="1w">أسبوعي W1</option><option value="1M">شهري MN1</option></select></div>
+<div class="field"><label>عدد الشموع المطلوبة</label><select id="bars"><option value="300">300 شمعة</option><option value="500" selected>500 شمعة</option></select></div>
+<button id="analyze">تحليل السوق ↗</button>
+</section>
+<div class="status" id="status">جاهز. اختر السوق والفريم ثم اضغط «تحليل السوق». العملات الرقمية تستخدم بيانات Binance العامة. بقية الأسواق تحتاج مفتاح Twelve Data مجاني من الإعدادات.</div>
+<div class="grid">
+<div class="panel"><div class="panel-head"><b>مخطط السعر والتحليل</b><span class="sub" id="chartMeta">بانتظار البيانات</span></div><div class="price-line"><span class="price" id="price">—</span><span class="change" id="priceMeta">آخر سعر مستلم</span></div><div id="chart"></div></div>
+<div class="panel">
+<div class="panel-head"><b>نتيجة المحرك</b><span class="sub" id="updated">لم يتم التحليل</span></div>
+<div class="signal"><div><small class="sub">الاتجاه المرشح</small><br><strong id="direction" class="wait">—</strong></div><div style="text-align:left"><small class="sub">قوة الصفقة</small><div class="score" id="strength">—</div></div></div>
+<div class="sub">توافق المؤشرات <b id="agreement">—</b></div><div class="meter"><i id="meter"></i></div>
+<div class="metrics">
+<div class="metric"><small>سعر الدخول المرجعي</small><b id="entry">—</b></div><div class="metric"><small>وقف الخسارة</small><b id="sl">—</b></div>
+<div class="metric"><small>نسبة المخاطرة / العائد</small><b id="rr">—</b></div><div class="metric"><small>عدد الشموع المستخدمة</small><b id="count">—</b></div>
+</div>
+<div class="levels"><div class="level"><small>الهدف الأول</small><b id="tp1">—</b></div><div class="level"><small>الهدف الثاني</small><b id="tp2">—</b></div><div class="level"><small>الهدف الثالث</small><b id="tp3">—</b></div><div class="level"><small>ATR</small><b id="atr">—</b></div></div>
+<div class="indicators"><div class="panel-head"><b>قراءة المؤشرات</b><span class="sub">تقييم فني</span></div><div id="indicatorRows"><div class="indicator"><span>بانتظار التحليل</span><span>—</span></div></div></div>
+<div class="note">قوة الصفقة وتوافق المؤشرات درجات فنية وليستا احتمالاً مضموناً للربح. السعر قد يتغير أثناء التنفيذ، وتختلف الأسعار بين مزودي البيانات والوسطاء.</div>
+</div></div>
+<details class="panel settings"><summary>إعدادات مزود البيانات للأسواق غير المشفرة</summary><div class="field" style="margin-top:12px"><label>مفتاح Twelve Data API (اختياري — للخدمات التي يدعمها حسابك)</label><input id="apiKey" type="password" placeholder="ألصق مفتاح API هنا"></div><div class="note">يمكن الحصول على مفتاح مجاني من موقع Twelve Data. لا تشارك المفتاح مع أحد. حدود الخطة المجانية قد تمنع بعض الرموز أو الفريمات أو عدد الطلبات.</div></details>
+<footer>HAIDAR AI TRADING PRO · بيانات السوق عبر مزود خارجي · لا توجد ضمانات ربح أو توصية استثمارية شخصية</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);let chart,series;
+function initChart(){if(!window.LightweightCharts)return;chart=LightweightCharts.createChart($('chart'),{width:$('chart').clientWidth,height:340,layout:{background:{color:'#0d1726'},textColor:'#91a4bd'},grid:{vertLines:{color:'#17263a'},horzLines:{color:'#17263a'}},rightPriceScale:{borderColor:'#26374e'},timeScale:{borderColor:'#26374e',timeVisible:true},crosshair:{mode:1}});series=chart.addCandlestickSeries({upColor:'#2dd4a0',downColor:'#ff667d',borderUpColor:'#2dd4a0',borderDownColor:'#ff667d',wickUpColor:'#2dd4a0',wickDownColor:'#ff667d'});window.addEventListener('resize',()=>chart.applyOptions({width:$('chart').clientWidth}));}
+initChart();
+const cryptoMap={BTCUSDT:1,ETHUSDT:1,BNBUSDT:1,SOLUSDT:1};
+function fmt(n){if(!Number.isFinite(n))return'—';return n.toLocaleString('en-US',{maximumFractionDigits:n>100?2:6})}
+async function loadCandles(symbol,tf,limit){
+ if(cryptoMap[symbol]){const u=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${tf}&limit=${limit+1}`;const r=await fetch(u);if(!r.ok)throw Error('تعذّر جلب بيانات Binance ('+r.status+').');const a=await r.json();return {candles:a.slice(0,-1).map(x=>({time:Math.floor(x[0]/1000),open:+x[1],high:+x[2],low:+x[3],close:+x[4]})),source:'Binance Spot API',stamp:new Date().toLocaleString('ar')};}
+ const key=$('apiKey').value.trim();if(!key)throw Error('هذا السوق يحتاج مفتاح Twelve Data API. افتح إعدادات مزود البيانات وأضف المفتاح.');let interval=({'1m':'1min','5m':'5min','15m':'15min','30m':'30min','1h':'1h','4h':'4h','1d':'1day','1w':'1week','1M':'1month'})[tf];let url=`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${limit+1}&apikey=${encodeURIComponent(key)}`;let r=await fetch(url);if(!r.ok)throw Error('تعذّر الاتصال بمزود البيانات.');let j=await r.json();if(j.status==='error'||!j.values)throw Error(j.message||'لم تتوفر بيانات لهذا الرمز أو الفريم.');return {candles:j.values.reverse().slice(0,-1).map(x=>({time:Math.floor(new Date(x.datetime+'Z').getTime()/1000),open:+x.open,high:+x.high,low:+x.low,close:+x.close})),source:'Twelve Data',stamp:new Date().toLocaleString('ar')};
+}
+function ema(v,p){let k=2/(p+1),o= v[0];let out=[o];for(let i=1;i<v.length;i++){o=v[i]*k+o*(1-k);out.push(o)}return out}
+function rsi(v,p=14){let g=0,l=0;for(let i=1;i<=p;i++){let d=v[i]-v[i-1];g+=Math.max(d,0);l+=Math.max(-d,0)}g/=p;l/=p;let out=Array(p).fill(null);for(let i=p;i<v.length;i++){if(i>p){let d=v[i]-v[i-1];g=(g*(p-1)+Math.max(d,0))/p;l=(l*(p-1)+Math.max(-d,0))/p}out.push(l===0?100:100-100/(1+g/l))}return out}
+function atr(c,p=14){let tr=c.map((x,i)=>i?Math.max(x.high-x.low,Math.abs(x.high-c[i-1].close),Math.abs(x.low-c[i-1].close)):x.high-x.low);return tr.slice(-p).reduce((a,b)=>a+b,0)/p}
+function macd(v){let a=ema(v,12),b=ema(v,26),m=v.map((_,i)=>a[i]-b[i]),s=ema(m,9);return {m:m.at(-1),s:s.at(-1),prev:m.at(-2)-s.at(-2)}}
+function analyze(c){
+ const v=c.map(x=>x.close),last=v.at(-1),e20=ema(v,20).at(-1),e50=ema(v,50).at(-1),e200=ema(v,200).at(-1),rv=rsi(v).at(-1),mc=macd(v),a=atr(c),adxProxy=Math.abs(e20-e50)/(a||1)*10;
+ let votes=[];votes.push({n:'EMA 20 / 50',v:e20>e50?1:-1,t:e20>e50?'صاعد':'هابط'});votes.push({n:'EMA 50 / 200',v:e50>e200?1:-1,t:e50>e200?'صاعد':'هابط'});votes.push({n:'RSI 14',v:rv>55?1:rv<45?-1:0,t:rv.toFixed(1)});votes.push({n:'MACD',v:mc.m>mc.s?1:-1,t:mc.m>mc.s?'إيجابي':'سلبي'});votes.push({n:'السعر مقابل EMA 200',v:last>e200?1:-1,t:last>e200?'فوق المتوسط':'تحت المتوسط'});votes.push({n:'ADX proxy',v:adxProxy>1?Math.sign(e20-e50):0,t:adxProxy.toFixed(1)+' (مؤشر اتجاه تقريبي)'});
+ let sum=votes.reduce((s,x)=>s+x.v,0),bull=votes.filter(x=>x.v===1).length,bear=votes.filter(x=>x.v===-1).length,side=sum>=0?'BUY':'SELL',agreement=Math.round(Math.max(bull,bear)/votes.length*100),strength=Math.max(35,Math.min(94,Math.round(45+Math.abs(sum)*7+(adxProxy>1?5:0))));
+ let sign=side==='BUY'?1:-1,sl=last-sign*a*1.5,t1=last+sign*a*1.5,t2=last+sign*a*2.5,t3=last+sign*a*3.5,rr=(Math.abs(t2-last)/Math.abs(last-sl)).toFixed(2);
+ return {last,side,agreement,strength,sl,t1,t2,t3,a,rr,votes,rv,e20,e50,e200};
+}
+function show(data,res,tf){let x=analyze(res.candles);$('price').textContent=fmt(x.last);$('priceMeta').textContent='المصدر: '+res.source;$('chartMeta').textContent=res.candles.length+' شمعة · '+tf;$('updated').textContent='تحديث: '+res.stamp;$('direction').textContent=x.side;$('direction').className=x.side==='BUY'?'buy':'sell';$('strength').textContent=x.strength+'/100';$('agreement').textContent=x.agreement+'%';$('meter').style.width=x.agreement+'%';$('entry').textContent=fmt(x.last);$('sl').textContent=fmt(x.sl);$('rr').textContent='1 : '+x.rr;$('count').textContent=res.candles.length;$('tp1').textContent=fmt(x.t1);$('tp2').textContent=fmt(x.t2);$('tp3').textContent=fmt(x.t3);$('atr').textContent=fmt(x.a);
+ $('indicatorRows').innerHTML=x.votes.map(z=>`<div class="indicator"><span>${z.n}</span><span>${z.t}</span></div>`).join('');
+ if(series){series.setData(res.candles);chart.timeScale().fitContent()}
+ $('status').textContent=`اكتمل التحليل باستخدام ${res.candles.length} شمعة. مصدر البيانات: ${res.source}. الإشارة آلية وفق تصويت المؤشرات، وليست ضماناً للنتيجة.`;
+}
+$('analyze').addEventListener('click',async()=>{let b=$('analyze');b.disabled=true;b.textContent='جارٍ جلب البيانات وتحليلها…';$('status').textContent='جارٍ طلب أحدث بيانات السوق وتحميل الشموع…';try{let sym=$('market').value,tf=$('tf').value,n=+$('bars').value;let r=await loadCandles(sym,tf,n);if(r.candles.length<300)throw Error('البيانات المستلمة أقل من 300 شمعة؛ لن نصدر إشارة ناقصة.');show(sym,r,tf)}catch(e){$('status').textContent='تعذّر التحليل: '+e.message;$('updated').textContent='لا توجد بيانات مؤكدة';}finally{b.disabled=false;b.textContent='تحليل السوق ↗'}});
+</script></body></html>
