@@ -53,13 +53,17 @@ footer{text-align:center;color:#71849e;font-size:10px;margin-top:25px;line-heigh
 <div class="indicators"><div class="panel-head"><b>قراءة المؤشرات</b><span class="sub">تقييم فني</span></div><div id="indicatorRows"><div class="indicator"><span>بانتظار التحليل</span><span>—</span></div></div></div>
 <div class="note">قوة الصفقة وتوافق المؤشرات درجات فنية وليستا احتمالاً مضموناً للربح. السعر قد يتغير أثناء التنفيذ، وتختلف الأسعار بين مزودي البيانات والوسطاء.</div>
 </div></div>
-<details class="panel settings"><summary>إعدادات مزود البيانات للأسواق غير المشفرة</summary><div class="field" style="margin-top:12px"><label>مفتاح Twelve Data API (اختياري — للخدمات التي يدعمها حسابك)</label><input id="apiKey" type="password" placeholder="ألصق مفتاح API هنا"></div><div class="note">يمكن الحصول على مفتاح مجاني من موقع Twelve Data. لا تشارك المفتاح مع أحد. حدود الخطة المجانية قد تمنع بعض الرموز أو الفريمات أو عدد الطلبات.</div></details>
+<details class="panel settings"><summary>إعدادات مزود البيانات للأسواق غير المشفرة</summary><div class="field" style="margin-top:12px"><label>مفتاح Twelve Data API (اختياري — للخدمات التي يدعمها حسابك)</label><input id="apiKey" type="password" autocomplete="off" placeholder="ألصق مفتاح API هنا"><div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><button type="button" id="clearApiKey" style="min-height:38px;padding:0 14px;background:#26364b;color:#e8f0fb;box-shadow:none">مسح المفتاح المحفوظ</button><span class="sub" id="keyState">يُحفظ تلقائياً على هذا الجهاز</span></div></div><div class="note">يُحفظ المفتاح محلياً في متصفح هذا الجهاز لتسهيل الدخول لاحقاً، ولا يُرسل إلى خادم موقعنا. لكنه ليس تخزيناً آمناً ضد من يستطيع الوصول إلى المتصفح أو ملفات الموقع. لا تستخدمه على جهاز مشترك. حدود الخطة المجانية قد تمنع بعض الرموز أو الفريمات أو عدد الطلبات.</div></details>
 <footer>HAIDAR AI TRADING PRO · بيانات السوق عبر مزود خارجي · لا توجد ضمانات ربح أو توصية استثمارية شخصية</footer>
 </main>
 <script>
 const $=id=>document.getElementById(id);let chart,series;
 function initChart(){if(!window.LightweightCharts)return;chart=LightweightCharts.createChart($('chart'),{width:$('chart').clientWidth,height:340,layout:{background:{color:'#0d1726'},textColor:'#91a4bd'},grid:{vertLines:{color:'#17263a'},horzLines:{color:'#17263a'}},rightPriceScale:{borderColor:'#26374e'},timeScale:{borderColor:'#26374e',timeVisible:true},crosshair:{mode:1}});series=chart.addCandlestickSeries({upColor:'#2dd4a0',downColor:'#ff667d',borderUpColor:'#2dd4a0',borderDownColor:'#ff667d',wickUpColor:'#2dd4a0',wickDownColor:'#ff667d'});window.addEventListener('resize',()=>chart.applyOptions({width:$('chart').clientWidth}));}
 initChart();
+const API_KEY_STORAGE='haidar_ai_trading_pro_twelve_data_key';
+try{const savedKey=localStorage.getItem(API_KEY_STORAGE);if(savedKey){$('apiKey').value=savedKey;$('keyState').textContent='تم استرجاع المفتاح المحفوظ على هذا الجهاز';}}catch(e){$('keyState').textContent='التخزين المحلي غير متاح في هذا المتصفح';}
+$('apiKey').addEventListener('input',()=>{try{const v=$('apiKey').value.trim();if(v)localStorage.setItem(API_KEY_STORAGE,v);else localStorage.removeItem(API_KEY_STORAGE);$('keyState').textContent=v?'تم حفظ المفتاح على هذا الجهاز':'لا يوجد مفتاح محفوظ';}catch(e){$('keyState').textContent='تعذّر حفظ المفتاح في المتصفح';}});
+$('clearApiKey').addEventListener('click',()=>{try{localStorage.removeItem(API_KEY_STORAGE);}catch(e){}$('apiKey').value='';$('keyState').textContent='تم مسح المفتاح من هذا المتصفح';});
 const cryptoMap={BTCUSDT:1,ETHUSDT:1,BNBUSDT:1,SOLUSDT:1};
 function fmt(n){if(!Number.isFinite(n))return'—';return n.toLocaleString('en-US',{maximumFractionDigits:n>100?2:6})}
 async function loadCandles(symbol,tf,limit){
