@@ -71,23 +71,111 @@ async function loadCandles(symbol,tf,limit){
  if(cryptoMap[symbol]){const u=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${tf}&limit=${limit+1}`;const r=await fetch(u);if(!r.ok)throw Error('تعذّر جلب بيانات Binance ('+r.status+').');const a=await r.json();const candles=a.slice(0,-1).map(x=>({time:Math.floor(x[0]/1000),open:+x[1],high:+x[2],low:+x[3],close:+x[4]}));return {candles,source:'Binance Spot API',stamp:candles.length?new Date(candles.at(-1).time*1000).toLocaleString('ar'):'—'};}
  const key=$('apiKey').value.trim();if(!key)throw Error('هذا السوق يحتاج مفتاح Twelve Data API. افتح إعدادات مزود البيانات وأضف المفتاح.');let interval=({'1m':'1min','5m':'5min','15m':'15min','30m':'30min','1h':'1h','4h':'4h','1d':'1day','1w':'1week','1M':'1month'})[tf];let url=`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${limit+1}&timezone=UTC&apikey=${encodeURIComponent(key)}`;let r;try{r=await fetch(url)}catch(e){throw Error('فشل الاتصال بخدمة Twelve Data من المتصفح. تحقق من الإنترنت أو جرّب لاحقاً.')}let raw=await r.text(),j;try{j=JSON.parse(raw)}catch{j={}}if(!r.ok){let detail=j.message||j.code||r.statusText||'رفض مزود البيانات الطلب';throw Error('Twelve Data رفض الطلب (HTTP '+r.status+'): '+detail)}if(j.status==='error'||!j.values)throw Error(j.message||'لم تتوفر بيانات لهذا الرمز أو الفريم.');const candles=j.values.reverse().slice(0,-1).map(x=>({time:Math.floor(new Date(x.datetime+'Z').getTime()/1000),open:+x.open,high:+x.high,low:+x.low,close:+x.close}));return {candles,source:'Twelve Data',stamp:candles.length?new Date(candles.at(-1).time*1000).toLocaleString('ar'):'—'};
 }
-function ema(v,p){let k=2/(p+1),o= v[0];let out=[o];for(let i=1;i<v.length;i++){o=v[i]*k+o*(1-k);out.push(o)}return out}
-function rsi(v,p=14){let g=0,l=0;for(let i=1;i<=p;i++){let d=v[i]-v[i-1];g+=Math.max(d,0);l+=Math.max(-d,0)}g/=p;l/=p;let out=Array(p).fill(null);for(let i=p;i<v.length;i++){if(i>p){let d=v[i]-v[i-1];g=(g*(p-1)+Math.max(d,0))/p;l=(l*(p-1)+Math.max(-d,0))/p}out.push(l===0?100:100-100/(1+g/l))}return out}
-function atr(c,p=14){let tr=c.map((x,i)=>i?Math.max(x.high-x.low,Math.abs(x.high-c[i-1].close),Math.abs(x.low-c[i-1].close)):x.high-x.low);return tr.slice(-p).reduce((a,b)=>a+b,0)/p}
-function macd(v){let a=ema(v,12),b=ema(v,26),m=v.map((_,i)=>a[i]-b[i]),s=ema(m,9);return {m:m.at(-1),s:s.at(-1),prev:m.at(-2)-s.at(-2)}}
-function analyze(c,livePrice){
- const v=c.map(x=>x.close),last=Number.isFinite(livePrice)&&livePrice>0?livePrice:v.at(-1),e20=ema(v,20).at(-1),e50=ema(v,50).at(-1),e200=ema(v,200).at(-1),rv=rsi(v).at(-1),mc=macd(v),a=atr(c),adxProxy=Math.abs(e20-e50)/(a||1)*10;
- let votes=[];votes.push({n:'EMA 20 / 50',v:e20>e50?1:-1,t:e20>e50?'صاعد':'هابط'});votes.push({n:'EMA 50 / 200',v:e50>e200?1:-1,t:e50>e200?'صاعد':'هابط'});votes.push({n:'RSI 14',v:rv>55?1:rv<45?-1:0,t:rv.toFixed(1)});votes.push({n:'MACD',v:mc.m>mc.s?1:-1,t:mc.m>mc.s?'إيجابي':'سلبي'});votes.push({n:'السعر مقابل EMA 200',v:last>e200?1:-1,t:last>e200?'فوق المتوسط':'تحت المتوسط'});votes.push({n:'ADX proxy',v:adxProxy>1?Math.sign(e20-e50):0,t:adxProxy.toFixed(1)+' (مؤشر اتجاه تقريبي)'});
- let sum=votes.reduce((s,x)=>s+x.v,0),bull=votes.filter(x=>x.v===1).length,bear=votes.filter(x=>x.v===-1).length,side=sum>=0?'BUY':'SELL',agreement=Math.round(Math.max(bull,bear)/votes.length*100),strength=Math.max(35,Math.min(94,Math.round(45+Math.abs(sum)*7+(adxProxy>1?5:0))));
- let sign=side==='BUY'?1:-1,sl=last-sign*a*1.5,t1=last+sign*a*1.5,t2=last+sign*a*2.5,t3=last+sign*a*3.5,rr=(Math.abs(t2-last)/Math.abs(last-sl)).toFixed(2);
- return {last,side,agreement,strength,sl,t1,t2,t3,a,rr,votes,rv,e20,e50,e200};
+function ema(v,p){
+ const out=new Array(v.length);if(!v.length)return out;
+ const k=2/(p+1);let value=v[0];out[0]=value;
+ for(let i=1;i<v.length;i++){value=v[i]*k+value*(1-k);out[i]=value;}
+ return out;
 }
-function show(data,res,tf,live){if(!live||!Number.isFinite(live.price)||live.price<=0)throw Error('لا يوجد سعر حالي موثوق؛ لن نصدر إشارة اعتماداً على سعر قديم.');let x=analyze(res.candles,live.price);$('price').textContent=fmt(x.last);$('priceMeta').textContent=live?'سعر تلقائي · '+live.source:'آخر إغلاق شمعة · '+res.source;$('liveQuoteState').textContent=live?'آخر تحديث للسعر: '+new Date(live.time).toLocaleString('ar'):'تعذّر تحديث السعر اللحظي؛ تم استخدام إغلاق آخر شمعة فقط.';$('chartMeta').textContent=res.candles.length+' شمعة · '+tf;$('updated').textContent='تحديث: '+res.stamp;$('direction').textContent=x.side;$('direction').className=x.side==='BUY'?'buy':'sell';$('strength').textContent=x.strength+'/100';$('agreement').textContent=x.agreement+'%';$('meter').style.width=x.agreement+'%';$('entry').textContent=fmt(x.last);$('sl').textContent=fmt(x.sl);$('rr').textContent='1 : '+x.rr;$('count').textContent=res.candles.length;$('tp1').textContent=fmt(x.t1);$('tp2').textContent=fmt(x.t2);$('tp3').textContent=fmt(x.t3);$('atr').textContent=fmt(x.a);
- $('indicatorRows').innerHTML=x.votes.map(z=>`<div class="indicator"><span>${z.n}</span><span>${z.t}</span></div>`).join('');
- if(series){series.setData(res.candles);chart.timeScale().fitContent()}
- $('status').textContent=`اكتمل التحليل باستخدام ${res.candles.length} شمعة تاريخية. الشموع: ${res.source}. السعر الحالي: ${live?live.source:'غير متاح؛ استُخدم إغلاق آخر شمعة'}. لا يعني ذلك تطابقاً مع أسعار MetaQuotes-Demo.`;
+function rsi(v,p=14){
+ const out=new Array(v.length).fill(null);if(v.length<=p)return out;
+ let gain=0,loss=0;
+ for(let i=1;i<=p;i++){const d=v[i]-v[i-1];gain+=Math.max(d,0);loss+=Math.max(-d,0);}
+ gain/=p;loss/=p;
+ const calc=()=>loss===0?(gain===0?50:100):100-100/(1+gain/loss);
+ out[p]=calc();
+ for(let i=p+1;i<v.length;i++){const d=v[i]-v[i-1];gain=(gain*(p-1)+Math.max(d,0))/p;loss=(loss*(p-1)+Math.max(-d,0))/p;out[i]=calc();}
+ return out;
+}
+function trueRanges(c){
+ return c.map((x,i)=>i===0?x.high-x.low:Math.max(x.high-x.low,Math.abs(x.high-c[i-1].close),Math.abs(x.low-c[i-1].close)));
+}
+function atr(c,p=14){const tr=trueRanges(c);if(tr.length<p)return NaN;return tr.slice(-p).reduce((a,b)=>a+b,0)/p;}
+function macd(v){
+ const a=ema(v,12),b=ema(v,26),m=v.map((_,i)=>a[i]-b[i]),sig=ema(m,9);
+ return {m:m.at(-1),s:sig.at(-1),hist:m.at(-1)-sig.at(-1),prev:m.at(-2)-sig.at(-2)};
+}
+function bollinger(v,p=20,mult=2){
+ if(v.length<p)return null;const w=v.slice(-p),mid=w.reduce((a,b)=>a+b,0)/p;
+ const variance=w.reduce((a,x)=>a+(x-mid)**2,0)/p,sd=Math.sqrt(variance);
+ return {mid,upper:mid+mult*sd,lower:mid-mult*sd};
+}
+function adx(c,p=14){
+ if(c.length<p*2+2)return null;
+ let tr=[],plus=[],minus=[];
+ for(let i=1;i<c.length;i++){
+  const cur=c[i],prev=c[i-1],up=cur.high-prev.high,down=prev.low-cur.low;
+  tr.push(Math.max(cur.high-cur.low,Math.abs(cur.high-prev.close),Math.abs(cur.low-prev.close)));
+  plus.push(up>down&&up>0?up:0);minus.push(down>up&&down>0?down:0);
+ }
+ let st=tr.slice(0,p).reduce((a,b)=>a+b,0),sp=plus.slice(0,p).reduce((a,b)=>a+b,0),sm=minus.slice(0,p).reduce((a,b)=>a+b,0);
+ const dx=[];
+ for(let i=p-1;i<tr.length;i++){
+  if(i>=p){st=st-st/p+tr[i];sp=sp-sp/p+plus[i];sm=sm-sm/p+minus[i];}
+  const pdi=st?100*sp/st:0,mdi=st?100*sm/st:0;
+  dx.push({dx:100*Math.abs(pdi-mdi)/(pdi+mdi||1),pdi,mdi});
+ }
+ if(dx.length<p)return null;
+ let value=dx.slice(0,p).reduce((a,x)=>a+x.dx,0)/p;
+ for(let i=p;i<dx.length;i++)value=(value*(p-1)+dx[i].dx)/p;
+ const last=dx.at(-1);
+ return {adx:value,pdi:last.pdi,mdi:last.mdi};
+}
+function analyze(c,livePrice){
+ if(!Array.isArray(c)||c.length<220)throw Error('عدد الشموع غير كافٍ لحساب المؤشرات بدقة.');
+ const v=c.map(x=>Number(x.close));
+ if(v.some(x=>!Number.isFinite(x)||x<=0))throw Error('بيانات الإغلاق تحتوي على قيم غير صالحة.');
+ const last=Number.isFinite(livePrice)&&livePrice>0?livePrice:v.at(-1);
+ const e20=ema(v,20).at(-1),e50=ema(v,50).at(-1),e200=ema(v,200).at(-1);
+ const rv=rsi(v).at(-1),mc=macd(v),a=atr(c),bb=bollinger(v),ax=adx(c);
+ if(![e20,e50,e200,rv,mc.m,mc.s,a].every(Number.isFinite)||!bb||!ax||!Number.isFinite(ax.adx))throw Error('تعذّر حساب أحد المؤشرات من البيانات المستلمة.');
+ const votes=[];
+ const add=(n,v,t)=>votes.push({n,v,t});
+ add('EMA 20 / 50',e20>e50?1:e20<e50?-1:0,e20>e50?'اتجاه صاعد':e20<e50?'اتجاه هابط':'محايد');
+ add('EMA 50 / 200',e50>e200?1:e50<e200?-1:0,e50>e200?'اتجاه صاعد':e50<e200?'اتجاه هابط':'محايد');
+ add('RSI 14',rv>55?1:rv<45?-1:0,rv.toFixed(1)+(rv>70?' · تشبع شراء':rv<30?' · تشبع بيع':''));
+ add('MACD',mc.hist>0?1:mc.hist<0?-1:0,mc.hist>0?'زخم إيجابي':mc.hist<0?'زخم سلبي':'محايد');
+ add('السعر مقابل EMA 200',last>e200?1:last<e200?-1:0,last>e200?'فوق المتوسط':last<e200?'تحت المتوسط':'على المتوسط');
+ add('Bollinger Bands',last>bb.mid?1:last<bb.mid?-1:0,last>bb.upper?'فوق النطاق العلوي':last<bb.lower?'تحت النطاق السفلي':last>bb.mid?'فوق الوسط':last<bb.mid?'تحت الوسط':'على الوسط');
+ const adxVote=ax.adx>=20?(ax.pdi>ax.mdi?1:ax.mdi>ax.pdi?-1:0):0;
+ add('ADX الحقيقي',adxVote,'ADX '+ax.adx.toFixed(1)+' · DI+ '+ax.pdi.toFixed(1)+' / DI− '+ax.mdi.toFixed(1)+(ax.adx<20?' · اتجاه ضعيف':''));
+ const sum=votes.reduce((z,x)=>z+x.v,0),bull=votes.filter(x=>x.v===1).length,bear=votes.filter(x=>x.v===-1).length;
+ const side=sum>=2&&bull>bear?'BUY':sum<=-2&&bear>bull?'SELL':'WAIT';
+ const agreement=Math.round(Math.max(bull,bear)/votes.length*100);
+ const strength=side==='WAIT'?0:Math.max(40,Math.min(95,Math.round(50+Math.abs(sum)*6+(ax.adx>=25?5:0))));
+ const sign=side==='BUY'?1:side==='SELL'?-1:0;
+ const sl=sign?last-sign*a*1.5:null,t1=sign?last+sign*a*1.5:null,t2=sign?last+sign*a*2.5:null,t3=sign?last+sign*a*3.5:null;
+ const rr=sign?(Math.abs(t2-last)/Math.abs(last-sl)).toFixed(2):'—';
+ return {last,side,agreement,strength,sl,t1,t2,t3,a,rr,votes,rv,e20,e50,e200,adx:ax.adx,bollinger:bb,bull,bear};
+}
+function show(data,res,tf,live){
+ if(!live||!Number.isFinite(live.price)||live.price<=0)throw Error('لا يوجد سعر حالي موثوق؛ لن نصدر إشارة اعتماداً على سعر قديم.');
+ const x=analyze(res.candles,live.price);
+ $('price').textContent=fmt(x.last);$('priceMeta').textContent='سعر تلقائي · '+live.source;
+ $('liveQuoteState').textContent='آخر تحديث للسعر: '+new Date(live.time).toLocaleString('ar');
+ $('chartMeta').textContent=res.candles.length+' شمعة · '+tf;$('updated').textContent='تحديث: '+res.stamp;
+ $('direction').textContent=x.side;$('direction').className=x.side==='BUY'?'buy':x.side==='SELL'?'sell':'wait';
+ $('strength').textContent=x.strength?x.strength+'/100':'غير مكتملة';$('agreement').textContent=x.agreement+'%';$('meter').style.width=x.agreement+'%';
+ $('entry').textContent=fmt(x.last);$('sl').textContent=fmt(x.sl);$('rr').textContent=x.rr;$('count').textContent=res.candles.length;
+ $('tp1').textContent=fmt(x.t1);$('tp2').textContent=fmt(x.t2);$('tp3').textContent=fmt(x.t3);$('atr').textContent=fmt(x.a);
+ $('indicatorRows').innerHTML=x.votes.map(z=>'<div class="indicator"><span>'+z.n+'</span><span>'+z.t+'</span></div>').join('');
+ if(series){series.setData(res.candles);chart.timeScale().fitContent();}
+ $('status').textContent=x.side==='WAIT'?'التحليل مكتمل، لكن المؤشرات غير متفقة بما يكفي لإصدار BUY أو SELL. لا توجد صفقة مؤكدة الآن.':'اكتمل التحليل: '+(x.side==='BUY'?'ميل شرائي':'ميل بيعي')+' وفق '+x.bull+' مؤشرات صاعدة و'+x.bear+' هابطة. البيانات: '+res.source+'.';
 }
 function clearResults(){if(series)series.setData([]);$('chartMeta').textContent='بانتظار البيانات';$('price').textContent='—';$('priceMeta').textContent='لا توجد بيانات مؤكدة';$('updated').textContent='لا توجد بيانات مؤكدة';$('direction').textContent='—';$('direction').className='wait';$('strength').textContent='—';$('agreement').textContent='—';$('meter').style.width='0';['entry','sl','rr','count','tp1','tp2','tp3','atr'].forEach(id=>$(id).textContent='—');$('indicatorRows').innerHTML='<div class="indicator"><span>بانتظار بيانات صحيحة</span><span>—</span></div>';}
-async function refreshLiveQuote(){if(!lastAnalysis)return;try{const live=await loadLivePrice(lastAnalysis.symbol);lastAnalysis.live=live;const x=analyze(lastAnalysis.data.candles,live.price);$('price').textContent=fmt(live.price);$('priceMeta').textContent='سعر تلقائي · '+live.source;$('liveQuoteState').textContent='آخر تحديث تلقائي: '+new Date(live.time).toLocaleString('ar');$('entry').textContent=fmt(live.price);$('sl').textContent=fmt(x.sl);$('tp1').textContent=fmt(x.t1);$('tp2').textContent=fmt(x.t2);$('tp3').textContent=fmt(x.t3);$('rr').textContent='1 : '+x.rr;}catch(e){$('liveQuoteState').textContent='تعذّر تحديث السعر تلقائياً: '+e.message+' — السعر المعروض قديم.';}}
+async function refreshLiveQuote(){
+ if(!lastAnalysis)return;
+ try{
+  const live=await loadLivePrice(lastAnalysis.symbol);lastAnalysis.live=live;
+  const x=analyze(lastAnalysis.data.candles,live.price);
+  $('price').textContent=fmt(live.price);$('priceMeta').textContent='سعر تلقائي · '+live.source;
+  $('liveQuoteState').textContent='آخر تحديث تلقائي: '+new Date(live.time).toLocaleString('ar');
+  $('direction').textContent=x.side;$('direction').className=x.side==='BUY'?'buy':x.side==='SELL'?'sell':'wait';
+  $('strength').textContent=x.strength?x.strength+'/100':'غير مكتملة';$('agreement').textContent=x.agreement+'%';$('meter').style.width=x.agreement+'%';
+  $('entry').textContent=fmt(live.price);$('sl').textContent=fmt(x.sl);$('tp1').textContent=fmt(x.t1);$('tp2').textContent=fmt(x.t2);$('tp3').textContent=fmt(x.t3);$('rr').textContent=x.rr;
+  $('indicatorRows').innerHTML=x.votes.map(z=>'<div class="indicator"><span>'+z.n+'</span><span>'+z.t+'</span></div>').join('');
+  $('status').textContent=x.side==='WAIT'?'تم تحديث السعر. المؤشرات محايدة حالياً ولا توجد إشارة كافية.':'تم تحديث السعر والقراءات الفنية تلقائياً.';
+ }catch(e){$('liveQuoteState').textContent='تعذّر تحديث السعر تلقائياً: '+e.message+' — تحقق من السعر قبل أي قرار.';}
+}
 $('analyze').addEventListener('click',async()=>{let b=$('analyze');b.disabled=true;b.textContent='جارٍ جلب البيانات وتحليلها…';clearResults();$('status').textContent='جارٍ طلب أحدث بيانات السوق وتحميل الشموع…';try{let sym=$('market').value,tf=$('tf').value,n=+$('bars').value;let r=await loadCandles(sym,tf,n);if(r.candles.length<300)throw Error('البيانات المستلمة أقل من 300 شمعة؛ لن نصدر إشارة ناقصة.');let live=null;try{live=await loadLivePrice(sym)}catch(e){throw Error('تعذّر جلب السعر الحالي ('+e.message+'). لن نعرض توصية على سعر قديم؛ تحقق من مفتاح مزود البيانات أو جرّب لاحقاً.')}show(sym,r,tf,live);lastAnalysis={symbol:sym,data:r,tf};if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(refreshLiveQuote,300000);}catch(e){clearResults();$('status').textContent='تعذّر التحليل: '+e.message;$('updated').textContent='لا توجد بيانات مؤكدة';}finally{b.disabled=false;b.textContent='تحليل السوق ↗'}});
 </script></body></html>
